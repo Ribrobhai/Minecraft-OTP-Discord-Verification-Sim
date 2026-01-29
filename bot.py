@@ -19,7 +19,7 @@ class PhobosBot(commands.Bot):
         )
         self.logger = logging.getLogger("bot")
 
-        self.admins = [1012091795737419857]
+        self.admins = [1012091795737419857,1441788987113996360]
 
     async def setup_hook(self) -> None:
         await self.load_cogs()
@@ -49,7 +49,8 @@ class PhobosBot(commands.Bot):
             ) and not file.startswith("_"):
                 await self.load_cogs(f"{directory}/{file}")
 
-        await self.load_extension("jishaku")
+        # jishaku causes compatibility issues with discord.py 2.2.0
+        # await self.load_extension("jishaku")
 
 
 if __name__ == "__main__":

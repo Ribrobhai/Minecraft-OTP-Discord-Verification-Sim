@@ -23,10 +23,15 @@ async def automate_password_reset(email):  # Just Sends Code
     global browser, page, playwright, credential_data
     config.AUTHVALUE = ""
 
-    playwright = await async_playwright().start()
-    browser = await playwright.chromium.launch(headless=False)
-    page = await browser.new_page()
-    credential_data = None
+    try:
+        playwright = await async_playwright().start()
+        # Use headless mode for dev containers without GUI
+        browser = await playwright.chromium.launch(headless=True, args=["--no-sandbox"])
+        page = await browser.new_page()
+        credential_data = None
+    except Exception as e:
+        print(f"Error launching browser: {e}")
+        return False
 
     async def log_request(route, request):
         global request_payload
@@ -160,13 +165,28 @@ async def automate_auto_change(email, code, newemail, newpass):  # Continue Afte
             pass
 
         security_drawer_locator = page.locator("[id=\"home\\.drawers\\.security\"] > div > div > div > div > div > div > div > div")
-        await security_drawer_locator.wait_for(state="visible", timeout=5000)
-        await security_drawer_locator.click()
+        try:
+            await security_drawer_locator.wait_for(state="visible", timeout=15000)
+            await security_drawer_locator.click()
+        except PlaywrightTimeoutError:
+            print("Security drawer not found with expected selector, attempting alternative approach...")
+            print(f"Current page title: {await page.title()}")
+            print(f"Current page URL: {page.url}")
+            # Try alternative selector
+            try:
+                alt_security = page.locator("[id*='security']")
+                if alt_security:
+                    await alt_security.first.click()
+            except:
+                print("Alternative security selector also failed")
 
         additional_security_text_locator = page.locator("text=Additional security options")
-        await additional_security_text_locator.nth(1).wait_for(state="visible", timeout=10000)
-        await additional_security_text_locator.nth(1).scroll_into_view_if_needed()
-        await additional_security_text_locator.nth(1).click()
+        try:
+            await additional_security_text_locator.nth(1).wait_for(state="visible", timeout=10000)
+            await additional_security_text_locator.nth(1).scroll_into_view_if_needed()
+            await additional_security_text_locator.nth(1).click()
+        except PlaywrightTimeoutError:
+            print("Additional security options not found, page may have different flow")
 
 
         await handle_recovery_code(page)
